@@ -367,7 +367,7 @@ supported_distros="ALDOS, Alpine Linux, AlmaLinux, Alter Linux, Amazon Linux, An
 blackPanther OS, BLAG, BunsenLabs, CentOS, Chakra, Chapeau, Chrome OS, Chromium OS, CrunchBang, CRUX, \
 Debian, Deepin, DesaOS,Devuan, Dragora, DraugerOS, elementary OS, EuroLinux, Evolve OS, Sulin, Exherbo, Fedora(Old and Current Logos), Frugalware, Fuduntu, Funtoo, \
 Fux, Gentoo, gNewSense, Guix System, Hyperbola GNU/Linux-libre, januslinux, Jiyuu Linux, Kali Linux, KaOS, KDE neon, Kogaion, Korora, \
-LinuxDeepin, Linux Mint, LMDE, Logos, Mageia, Mandriva/Mandrake, Manjaro, Mer, Netrunner, NixOS, OBRevenge, openSUSE, \
+LinuxDeepin, Linux Mint, LMDE, Logos, Mageia, Mandriva/Mandrake, Manjaro, Mer, Netrunner, NixOS, OBRevenge, OneKVM Linux, openSUSE, \
 OS Elbrus, Oracle Linux, Parabola GNU/Linux-libre, Pardus, Parrot Security, PCLinuxOS, PeppermintOS, Proxmox VE, PureOS, Quirinux, Qubes OS, \
 Raspbian, Red Hat Enterprise Linux, Rocky Linux, ROSA, Sabayon, SailfishOS, Scientific Linux, Siduction, Slackware, Solus, Source Mage GNU/Linux, \
 SparkyLinux, SteamOS, SUSE Linux Enterprise, SwagArch, TeArch, TinyCore, Trisquel, Ubuntu, Viperr, Void and Zorin OS and EndeavourOS"
@@ -861,6 +861,9 @@ detectdistro () {
 					distro="Zorin OS"
 					distro_codename=""
 					;;
+				"onekvm"|"Onekvm"|"OneKVM"|"OneKVM OS"|"OneKVM Linux")
+					distro="OneKVM Linux"
+					;;
 				*)
 					if [ "x$(printf "${distro_detect}" | od -t x1 | sed -e 's/^\w*\ *//' | tr '\n' ' ' | grep 'eb b6 89 ec 9d 80 eb b3 84 ')" != "x" ]; then
 						distro="Red Star OS"
@@ -981,6 +984,20 @@ detectdistro () {
 					[[ "${distro}" == "elementary" ]] && distro="elementary OS"
 					[[ "${distro}" == "Fedora" && -d /etc/qubes-rpc ]] && distro="qubes" # Inner VM
 					[[ "${distro}" == "Ol" || "${distro}" == "ol" ]] && distro="Oracle Linux"
+					if [[ "${distro}" == "Onekvm" || "${distro}" == "OneKVM" ]]; then
+						distro="OneKVM Linux"
+						if [[ -n ${os_release} ]]; then
+							onekvm_version=$("${AWK}" -F'=' '/^VERSION_ID=/ {print $2}' "${os_release}" | tr -d '"')
+							onekvm_codename=$("${AWK}" -F'=' '/^VERSION_CODENAME=/ {print $2}' "${os_release}" | tr -d '"')
+							if [[ -n ${onekvm_version} && -n ${onekvm_codename} ]]; then
+								distro_more="${onekvm_version} (${onekvm_codename})"
+							elif [[ -n ${onekvm_version} ]]; then
+								distro_more="${onekvm_version}"
+							elif [[ -n ${onekvm_codename} ]]; then
+								distro_more="(${onekvm_codename})"
+							fi
+						fi
+					fi
 					if [[ "${distro}" == "Oracle Linux" && -f /etc/oracle-release ]]; then
 						distro_more="$(sed 's/Oracle Linux //' /etc/oracle-release)"
 					fi
@@ -1172,6 +1189,10 @@ detectdistro () {
 							distro = "ALDOS"
 							exit
 						}
+						else if ($0 ~ /OneKVM/) {
+							distro = "OneKVM Linux"
+							exit
+						}
 					} END {
 						print distro
 					}' /etc/issue)
@@ -1284,6 +1305,7 @@ detectdistro () {
 		nix|nix*os) distro="NixOS" ;;
 		obarun) distro="Obarun" ;;
 		obrevenge) distro="OBRevenge" ;;
+		onekvm|onekvm*linux|onekvm*os) distro="OneKVM Linux" ;;
 		ol|oracle*linux) distro="Oracle Linux" ;;
 		openbsd) distro="OpenBSD" ;;
 		opensuse) distro="openSUSE" ;;
@@ -1412,6 +1434,7 @@ detectpkgs () {
 	pkgs="Unknown"
 	local offset=0
 	case "${distro}" in
+		'OneKVM Linux') pkgs=$(opkg list-installed 2>/dev/null | wc -l) ;;
 		'Alpine Linux') pkgs=$(apk info | wc -l) ;;
 		'Arch Linux'|'Arch Linux 32'|'ArcoLinux'|'Parabola GNU/Linux-libre'|'Hyperbola GNU/Linux-libre'|'Chakra'|'Manjaro'|'Antergos'| \
 		'Netrunner'|'KaOS'|'Obarun'|'SwagArch'|'OBRevenge'|'Artix Linux'|'EndeavourOS'|'Alter Linux'|'TeArch')
@@ -6186,6 +6209,26 @@ asciiText () {
 "${c1}             //////////              %s"
 "                                          %s")
 		;;
+
+		"OneKVM Linux")
+			if [[ "$no_color" != "1" ]]; then
+				c1=$'\033[38;2;244;247;251m' # #f4f7fb
+				c2=$'\033[38;2;22;119;255m'  # #1677FF
+			fi
+			if [ -n "${my_lcolor}" ]; then c1="${my_lcolor}"; c2="${my_lcolor}"; fi
+			startline="0"
+			logowidth="22"
+			fulloutput=(
+"${c1}    ####      ${c2}+++++${c1}   %s"
+"${c1}  ######    ${c2}++++++${c1}    %s"
+"${c1}########   ${c2}+++++${c1}      %s"
+"${c1}    ####  ${c2}+++++${c1}       %s"
+"${c1}    #### ${c2}+++++${c1}        %s"
+"${c1}    ####  ${c2}+++++${c1}       %s"
+"${c1}    ####   ${c2}++++++${c1}     %s"
+"${c1}    ####    ${c2}++++++${c1}    %s"
+"${c1}    ####      ${c2}+++++${c1}   %s")
+		;;
 		*)
 			if [[ "${kernel}" =~ "Linux" ]]; then
 				if [[ "$no_color" != "1" ]]; then
@@ -6410,7 +6453,7 @@ infoDisplay () {
 		"Alpine Linux"|"Arch Linux - Old"|"ArcoLinux"|"blackPanther OS"|"Fedora"|"Fedora - Old"|"Korora"|"Chapeau"|"Mandriva"|"Mandrake"| \
 		"Chakra"|"ChromeOS"|"Sabayon"|"Slackware"|"Mac OS X"|"macOS"|"Trisquel"|"Kali Linux"|"Jiyuu Linux"|"Antergos"|"Alter Linux"| \
 		"KaOS"|"Logos"|"gNewSense"|"Netrunner"|"NixOS"|"SailfishOS"|"Qubes OS"|"Kogaion"|"PCLinuxOS"| \
-		"Obarun"|"Siduction"|"Solus"|"SwagArch"|"Parrot Security"|"Zorin OS"|"Uos"|"TeArch")
+		"Obarun"|"Siduction"|"Solus"|"SwagArch"|"Parrot Security"|"Zorin OS"|"Uos"|"TeArch"|"OneKVM Linux")
 			labelcolor=$(getColor 'light blue')
 		;;
 		"Arch Linux"|"Arch Linux 32"|"Artix Linux"|"Frugalware"|"Mageia"|"Deepin"|"CRUX"|"OS Elbrus"|"EndeavourOS")
